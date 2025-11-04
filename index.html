@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eufonia Studio</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Barra lateral -->
+    <div class="sidebar">
+        <div class="logo-container">
+            <div class="instances-container" id="instancesContainer"></div>
+            <div class="add-button" id="addButton">+</div>
+        </div>
+    </div>
+
+    <!-- Contenido principal -->
+    <div class="main-content">
+        <div class="instance-background" id="instanceBackground"></div>
+        <button class="play-button" id="playButton">Play</button>
+    </div>
+
+    <!-- MENÚ DE INSTANCIAS -->
+    <div class="instances-menu" id="instancesMenu">
+        <div class="menu-sidebar">
+            <div class="user-profile">
+                <img src="./imagenes/admin.png" alt="Profile" class="user-icon">
+                <div class="user-name">Admin</div>
+            </div>
+            <div class="logo-bottom">EUFONIA<br>STUDIO</div>
+        </div>
+
+        <div class="menu-main-content">
+            <div class="top-nav">
+                <div class="top-bar-title">INSTANCES</div>
+                <button class="back-button" id="backButton">← Volver</button>
+            </div>
+
+            <div class="instances-section">
+                <h1 class="instances-title">AVAILABLE INSTANCES</h1>
+                <div class="instances-grid">
+                    <div class="instance-card"
+                         data-id="zeon-game-2"
+                         data-img="./imagenes/zgicon.png"
+                         data-bg="./imagenes/zgback.png">
+                        <div class="instance-image" style="background-image: url('./imagenes/instancia1.png')">
+                            <div class="instance-image-overlay"></div>
+                        </div>
+                        <div class="instance-info">
+                            <div class="instance-name">Zeon Game 2</div>
+                            <div class="instance-version">Bedrock 1.21.114</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const addButton = document.getElementById('addButton');
+            const backButton = document.getElementById('backButton');
+            const instancesMenu = document.getElementById('instancesMenu');
+            const instancesContainer = document.getElementById('instancesContainer');
+            const instanceCards = document.querySelectorAll('.instance-card');
+            const instanceBackground = document.getElementById('instanceBackground');
+            const playButton = document.getElementById('playButton');
+
+            let activeInstance = null;
+            const instancesManager = {
+                instances: [],
+                activeInstance: null,
+
+                addInstance(id, imgUrl, bgUrl, name, isPermanent = false) {
+                    const instance = { id, imgUrl, bgUrl, name, isPermanent, isActive: false };
+                    this.instances.push(instance);
+                    return instance;
+                },
+
+                setActiveInstance(id) {
+                    this.instances.forEach(instance => instance.isActive = instance.id === id);
+                    this.activeInstance = this.instances.find(inst => inst.id === id);
+                }
+            };
+
+            const permanentInstances = [
+                { id: 'creative-mode', img: './imagenes/exo1.png', bg: './imagenes/exback1.png', name: 'Creative Mode', isPermanent: true },
+                { id: 'signal-beta', img: './imagenes/exo2.png', bg: './imagenes/exback2.png', name: 'Signal Beta', isPermanent: true }
+            ];
+
+            permanentInstances.forEach(instance => {
+                instancesManager.addInstance(instance.id, instance.img, instance.bg, instance.name, instance.isPermanent);
+                addInstanceToSidebar(instance.id, instance.img, instance.bg, instance.name, instance.isPermanent);
+            });
+
+            if (instancesContainer.children.length > 0) {
+                setTimeout(() => {
+                    const firstInstance = instancesContainer.querySelector('.instance-sidebar');
+                    if (firstInstance) firstInstance.click();
+                }, 100);
+            }
+
+            addButton.addEventListener('click', () => {
+                instancesMenu.classList.add('open');
+                document.body.style.overflow = 'hidden';
+            });
+
+            backButton.addEventListener('click', () => {
+                instancesMenu.classList.remove('open');
+                document.body.style.overflow = '';
+            });
+
+            instancesMenu.addEventListener('click', e => {
+                if (e.target === instancesMenu) {
+                    instancesMenu.classList.remove('open');
+                    document.body.style.overflow = '';
+                }
+            });
+
+            instanceCards.forEach(card => {
+                card.addEventListener('click', function() {
+                    document.querySelectorAll('.instance-card').forEach(c => c.classList.remove('selected'));
+                    this.classList.add('selected');
+
+                    const id = this.getAttribute('data-id');
+                    const img = this.getAttribute('data-img');
+                    const bg = this.getAttribute('data-bg');
+                    const name = this.querySelector('.instance-name').textContent;
+
+                    addInstanceToSidebar(id, img, bg, name, false);
+
+                    const sidebarInstance = document.querySelector(`.instance-sidebar[data-id="${id}"]`);
+                    if (sidebarInstance) sidebarInstance.click();
+
+                    setTimeout(() => {
+                        instancesMenu.classList.remove('open');
+                        document.body.style.overflow = '';
+                    }, 400);
+                });
+            });
+
+            function addInstanceToSidebar(id, imgUrl, bgUrl, name = '', isPermanent = false) {
+                const existingInstance = document.querySelector(`.instance-sidebar[data-id="${id}"]`);
+                if (existingInstance) {
+                    existingInstance.click();
+                    return;
+                }
+
+                instancesManager.addInstance(id, imgUrl, bgUrl, name, isPermanent);
+
+                const instanceElement = document.createElement('img');
+                instanceElement.src = imgUrl;
+                instanceElement.alt = name || `Instancia ${id}`;
+                instanceElement.className = 'instance-sidebar';
+                instanceElement.setAttribute('data-id', id);
+                instanceElement.setAttribute('data-bg', bgUrl);
+                instanceElement.setAttribute('title', name);
+
+                instanceElement.addEventListener('click', function() {
+                    document.querySelectorAll('.instance-sidebar').forEach(inst => inst.classList.remove('active'));
+                    this.classList.add('active');
+
+                    const bgUrl = this.getAttribute('data-bg');
+                    changeBackground(bgUrl);
+                    instancesManager.setActiveInstance(id);
+                    activeInstance = id;
+                    playButton.disabled = false;
+                });
+
+                instancesContainer.appendChild(instanceElement);
+                instanceElement.offsetHeight;
+                instanceElement.classList.add('show');
+                if (isPermanent) instanceElement.click();
+            }
+
+            function changeBackground(bgUrl) {
+                if (instanceBackground.style.backgroundImage && instanceBackground.style.backgroundImage !== 'none') {
+                    instanceBackground.classList.remove('fade-in');
+                    instanceBackground.classList.add('fade-out');
+                    setTimeout(() => {
+                        instanceBackground.style.backgroundImage = `url('${bgUrl}')`;
+                        instanceBackground.classList.remove('fade-out');
+                        instanceBackground.classList.add('fade-in');
+                    }, 800);
+                } else {
+                    instanceBackground.style.backgroundImage = `url('${bgUrl}')`;
+                    instanceBackground.classList.remove('fade-out');
+                    instanceBackground.classList.add('fade-in');
+                }
+            }
+
+            // ====== 🚀 PLAY ACTUALIZADO ======
+            playButton.addEventListener('click', function() {
+                if (!activeInstance) {
+                    alert('Por favor, selecciona una instancia primero');
+                    return;
+                }
+
+                const { name, id } = instancesManager.activeInstance || {};
+                const servers = {
+                    'creative-mode': { ip: 'creative.exo.net', port: 19132 },
+                    'signal-beta': { ip: 'beta.exo.net', port: 19133 },
+                    'zeon-game-2': { ip: 'server.cprot.net', port: 25570 }
+                };
+
+                const server = servers[id];
+                if (!server) {
+                    alert(`No se encontró configuración para "${name || id}"`);
+                    return;
+                }
+
+                this.textContent = 'Iniciando...';
+                this.classList.add('loading');
+                this.disabled = true;
+
+                setTimeout(() => {
+                    const url = `minecraft://connect?serverUrl=${server.ip}&serverPort=${server.port}`;
+                    window.open(url, '_blank');
+                    window.open(url, '_self');
+
+                    this.textContent = 'Play';
+                    this.classList.remove('loading');
+                    this.disabled = false;
+                }, 1200);
+            });
+        });
+    </script>
+</body>
+</html>
